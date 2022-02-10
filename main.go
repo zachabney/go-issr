@@ -5,13 +5,10 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/gorilla/sessions"
+	"github.com/kataras/go-sessions/v3"
 )
 
-var (
-	key   = []byte("sssshhhhh-dont-leak-me")
-	store = sessions.NewCookieStore(key)
-)
+var session = sessions.New(sessions.Config{Cookie: "go-session"})
 
 func main() {
 	http.HandleFunc("/", HelloWorld)
@@ -27,40 +24,26 @@ func HelloWorld(w http.ResponseWriter, r *http.Request) {
 	if error != nil {
 		fmt.Errorf("Ahhhhh")
 	}
+	s := session.Start(w, r)
 
-	session, _ := store.Get(r, "my-session")
-	xObj := session.Values["x"]
-
-	var x int
-	if xObj == nil {
+	x, error := s.GetInt("x")
+	if error != nil {
 		x = 0
-	} else {
-		x = xObj.(int)
 	}
-
-	addX := r.Form.Get("addX")
-	minusX := r.Form.Get("subX")
-
-	if addX != "" {
-		session.Values["x"] = x + 1
+	if r.Form.Get("addX") != "" {
 		x = x + 1
-		session.Save(r, w)
 	}
-
-	if minusX != "" && x > 0 {
-		session.Values["x"] = x - 1
+	if r.Form.Get("subX") != "" && x > 0 {
 		x = x - 1
-		session.Save(r, w)
 	}
+	s.Set("x", x)
 
 	xList := make([]int, x)
 	for i := 0; i < x; i++ {
 		xList[i] = i
 	}
 
-	fmt.Println(x)
-
-	data := PageData{
+	data := PageData {
 		XList: xList,
 	}
 
